@@ -1,6 +1,8 @@
 'use strict';
 
 System.register(['angular', 'app/core/utils/kbn', 'jquery', 'jquery.flot', 'jquery.flot.time'], function (_export, _context) {
+  "use strict";
+
   var angular, kbn, $;
   return {
     setters: [function (_angular) {
@@ -12,8 +14,6 @@ System.register(['angular', 'app/core/utils/kbn', 'jquery', 'jquery.flot', 'jque
     }, function (_jqueryFlot) {}, function (_jqueryFlotTime) {}],
     execute: function () {
       //import _ from  'lodash';
-
-
       angular.module('grafana.directives').directive('piechartLegend', function (popoverSrv, $timeout) {
         return {
           link: function link(scope, elem) {
@@ -117,6 +117,31 @@ System.register(['angular', 'app/core/utils/kbn', 'jquery', 'jquery.flot', 'jque
 
               $container.toggleClass('graph-legend-table', tableLayout);
 
+              function addSeries(index, series, total) {
+                var html = series ? '<div class="graph-legend-series" data-series-index="' + index + '">' : '<div class="graph-legend-series" style="height:8px;background-color:transparent;" />' + '<div class="graph-legend-series" style="font-weight:bold;background-color:transparent;">';
+                html += '<span class="graph-legend-icon" style="float:none;">';
+                if (series) html += '<i class="fa fa-minus pointer" style="color:' + series.color + '"></i>';
+                html += '</span>';
+
+                html += '<span class="graph-legend-alias" style="float:none;">';
+                html += '<a>' + (series ? series.label : 'Total') + '</a>';
+                html += '</span>';
+
+                if (showValues && tableLayout) {
+                  var value = series ? series.formatValue(series.stats[ctrl.panel.valueName]) : total;
+                  if (panel.legend.values) {
+                    html += '<div class="graph-legend-value">' + ctrl.formatValue(value) + '</div>';
+                  }
+                  if (panel.legend.percentage && total) {
+                    var pvalue = (value / total * 100).toFixed(2) + '%';
+                    html += '<div class="graph-legend-value">' + pvalue + '</div>';
+                  }
+                }
+
+                html += '</div>';
+                $container.append($(html));
+              }
+
               if (tableLayout) {
                 var header = '<tr><th colspan="2" style="text-align:left"></th>';
                 if (panel.legend.values) {
@@ -138,7 +163,7 @@ System.register(['angular', 'app/core/utils/kbn', 'jquery', 'jquery.flot', 'jque
                 }
               }
 
-              if (panel.legend.percentage) {
+              if (panel.legend.percentage || panel.legend.total) {
                 var total = 0;
                 for (i = 0; i < seriesList.length; i++) {
                   total += seriesList[i].stats[ctrl.panel.valueName];
@@ -157,30 +182,9 @@ System.register(['angular', 'app/core/utils/kbn', 'jquery', 'jquery.flot', 'jque
                   continue;
                 }
 
-                var html = '<div class="graph-legend-series';
-                html += '" data-series-index="' + i + '">';
-                html += '<span class="graph-legend-icon" style="float:none;">';
-                html += '<i class="fa fa-minus pointer" style="color:' + series.color + '"></i>';
-                html += '</span>';
-
-                html += '<span class="graph-legend-alias" style="float:none;">';
-                html += '<a>' + series.label + '</a>';
-                html += '</span>';
-
-                if (showValues && tableLayout) {
-                  var value = series.formatValue(series.stats[ctrl.panel.valueName]);
-                  if (panel.legend.values) {
-                    html += '<div class="graph-legend-value">' + ctrl.formatValue(value) + '</div>';
-                  }
-                  if (total) {
-                    var pvalue = (value / total * 100).toFixed(2) + '%';
-                    html += '<div class="graph-legend-value">' + pvalue + '</div>';
-                  }
-                }
-
-                html += '</div>';
-                $container.append($(html));
+                addSeries(i, series, total);
               }
+              if (panel.legend.total) addSeries(null, null, total);
             }
           }
         };
